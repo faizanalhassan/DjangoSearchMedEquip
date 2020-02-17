@@ -2,8 +2,8 @@ import urllib.request
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.remote.webelement import WebElement
-
-SELENIUM_DEBUG = True
+from . import debug_funcs as df
+DEBUG = True
 
 
 def is_internet_connected():
@@ -25,10 +25,13 @@ def wait_until_connected(self):
 
 def get_element_text(self, xpath, e=None):
     if e is not None:
-        text = self.execute_script(f"""node = document.evaluate("{xpath}", arguments[0], null, XPathResult.FIRST_ORDERED_NODE_TYPE, null ).singleNodeValue;return node != null?node.innerText:'';""", e)
+        text = self.execute_script(f"""node = document.evaluate('{xpath}', arguments[0], null, XPathResult.FIRST_ORDERED_NODE_TYPE, null ).singleNodeValue;return node != null?node.innerText:'';""", e)
     else:
-        text = self.execute_script(f"""node = document.evaluate("{xpath}", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null ).singleNodeValue;return node != null?node.innerText:'';"""%xpath)
-    return text
+        text = self.execute_script(
+            f"""node = document.evaluate("{xpath}", document, null,
+             XPathResult.FIRST_ORDERED_NODE_TYPE, null ).singleNodeValue;
+            return node != null?node.innerText:'';""")
+    return text.strip()
 
 
 def get_element(self, xpath):
@@ -48,7 +51,8 @@ def is_element_exists(self, xpath):
 
 def click_element(self, xpath):
     if self.is_element_exists(xpath):
-        self.execute_script("""var n = document.evaluate("%s", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null ).singleNodeValue;n.scrollIntoView();n.click()"""%xpath)
+        self.execute_script(
+            """var n = document.evaluate("%s", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null ).singleNodeValue;n.scrollIntoView();n.click()"""%xpath)
         return True
     return False
 

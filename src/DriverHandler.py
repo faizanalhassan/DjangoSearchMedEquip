@@ -25,10 +25,10 @@ class STATUS:
 class LOGS:
     NOTHING = "No logs available"
     LOADING_PAGE = "Loading page: "
-    LOADING_COMPLETED = "Loading Completed"
-    SEARCH_FINISHED = "search_finished"
-    FOUND_PRODUCT = "found %i products on"
-    ERROR = "error occurred: "
+    LOADING_COMPLETED = "Loading Completed: "
+    SEARCH_FINISHED = "Search finished: "
+    FOUND_PRODUCT = "found %i products on "
+    ERROR = "Error occurred: "
     DRIVER_ALREADY_EXISTS = "Driver already exists "
     DRIVER_CREATED_AT = "Driver created at: "
     DRIVER_DELETED_AT = "Driver deleted at: "
@@ -36,15 +36,16 @@ class LOGS:
 
 
 class SellerData:
-    def __init__(self, name, company, location, phone_num):
+    def __init__(self, name, company, location, phone_num, whatsapp):
         self.name = name
         self.company = company
         self.location = location
         self.phone_num = phone_num
+        self.whatsapp = whatsapp
 
 
 class DriverHandler:
-    def __init__(self, name, request, resources, query, pause_time=2):
+    def __init__(self, name, request, resources, pause_time=2):
         self.name = name
         self.request = request
         self.status = ""
@@ -56,7 +57,6 @@ class DriverHandler:
         self.last_connected = datetime.now()
         self.parent = resources
         self.pause_time = pause_time
-        self.query = query
         self.run_search = False
 
     def set_status(self, status, called_by=""):
@@ -88,12 +88,13 @@ class DriverHandler:
             self.driver.refresh()
 
         if wait_ele_xpath != "":
-            for i in range(0, 10):
+            for i in range(0, 5):
                 wait_ele_found = len(self.driver.find_elements_by_xpath(wait_ele_xpath))
                 df.print_if_cond(DRIVER_HANDLER_DEBUG,
                                  f"Wait Element found = {wait_ele_found}\tRequired Elements = {ele_count}\tLoop count = {i}")
                 if wait_ele_found >= ele_count:
                     break
+                sleep(1)
         self.set_status(STATUS.RUNNING, func_name)
         self.set_logs(LOGS.LOADING_COMPLETED, func_name)
 
@@ -105,7 +106,7 @@ class DriverHandler:
                 return
         self.driver.quit()
 
-    def search(self):
+    def search(self, query):
         df.pause_if_cond(DRIVER_HANDLER_DEBUG, "from parent")
 
     def print_log(self, called_by):
@@ -134,37 +135,36 @@ class DriverHandler:
         self.set_logs(LOGS.DRIVER_CREATED_AT + str(datetime.now()), func_name)
         return True
 
-    def start_search(self):
+    def start_search(self, query):
         func_name = "run search"
         print(self)
         while self.driver == STATUS.INITIALIZING:
-            self.print_log(LOGS.WAITING+"Browser is not completely open yet", func_name)
+            self.set_logs(LOGS.WAITING+"Browser is not completely open yet", func_name)
             sleep(1)
         if self.run_search:
             raise SearchRunningException("Search is already running")
         self.run_search = True
         try:
-            self.search()
+            self.search(query)
         except SafeStopSearchException:
             pass
         self.set_logs(LOGS.SEARCH_FINISHED, func_name)
 
+
     def run_until_connected(self):
         print(self)
         self.create_d()
-        import time
         while True:
             if datetime.now() > self.last_connected + timedelta(seconds=10):
                 self.delete_d()
                 # users_resources.pop(self.request, None)
                 self.parent.pop(self.request, None)
                 break
-            df.print_if_cond(DRIVER_HANDLER_DEBUG, datetime.now().time().second -
-                             (self.last_connected + timedelta(seconds=10)).time().second)
-            time.sleep(1)
+            sleep(1)
 
     def update_last_connected(self):
         self.last_connected = datetime.now()
+        return f"{self.name} Last Connected:  {self.last_connected}.\n"
 
     def delete_d(self):
         func_name = "self.delete_d"

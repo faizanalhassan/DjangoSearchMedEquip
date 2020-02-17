@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% block title_block %}
+Welcome {{username}}!|{{block.super}}
+{% endblock title_block %}
+{% block body_block %}
+<form id="search-form" >
+    <input type="text" name="search" id="search" placeholder="Enter equipment name here">
+    <button type="submit">Search Sellers</button>
+</form>
+<form id="stop-form">
+    <button type="submit" disabled>Stop Search</button>
+</form>
+<div id="result"></div>
+
+{% endblock body_block  %}
+{% block script_block %}
+<script>
+    $("#search-form").submit(function (event) {
+        event.preventDefault();
+        $.get("/ajax/search?query=" + $("#search").val(), function (data) {
+            $("#result").html(data);
+            if(data.startsWith("{{ResponseStrings.SUCCEED}}"))
+            {
+                $("#search-form>button").prop( "disabled", true );
+                $("#stop-form>button").prop( "disabled", false );
+
+            }
+
+        }).fail(function (xhr, ajaxOptions, thrownError) {
+            $("#result").html("Unexpected Error: " + thrownError);
+        });
+    });
+    $("#stop-form").submit(function (event) {
+        event.preventDefault();
+        $.get("/ajax/stop-search/", function (data) {
+            $("#result").html(data);
+            if(data.startsWith("{{ResponseStrings.SUCCEED}}"))
+            {
+                $("#search-form>button").prop( "disabled", false );
+                $("#stop-form>button").prop( "disabled", true );
+
+            }
+        }).fail(function (xhr, ajaxOptions, thrownError) {
+            $("#result").html("Unexpected Error: " + thrownError);
+        })
+
+    });
+    $("#exec_query").click(function () {
+        $(this).html("Stop Search");
+        $.get("/ajax/search?query=" + $("#search").val(), function (data, status) {
+            console.log(data);
+            $("#result").html(data);
+            if (data === "Failed") {
+                return;
+            }
+
+            logIntId = setInterval(function () {
+                $.get("/check-logs/", function (logs) {
+                    console.log(logs.d_dotmed_logs);
+                    $("#result").html(logs.d_dotmed_logs);
+                    if (logs.d_dotmed_logs.startsWith("{{LOGS.SEARCH_FINISHED}}") || logs.d_dotmed_logs.startsWith("{{LOGS.ERROR}}")) {
+
+                        clearInterval(logIntId);
+
+                    }
+                })
+            }, 1000);
+        }).fail(function (xhr, ajaxOptions, thrownError) {
+            $("#result").html("Unexpected Error: " + thrownError);
+        });
+    });
+</script>
+{% endblock script_block  %}

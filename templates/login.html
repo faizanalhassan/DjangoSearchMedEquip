@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block title_block %}
+    Login to access the website
+{% endblock title_block %}
+{% block body_block %}
+        <form action="login/" method="POST">
+            {% csrf_token %}
+            <input required type="text" value="" name="username" placeholder="Enter user name...">
+            <input required type="password" value="" name="password" placeholder="Enter password here...">
+            <input type="submit" value="Login">
+        </form>
+{% endblock body_block %}

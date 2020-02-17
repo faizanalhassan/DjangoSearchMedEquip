@@ -114,6 +114,3 @@ USE_TZ = True
 STATIC_URL = '/static/'
 
 
-from .ResourceHandler import add_resource
-add_resource("Item", "q")
-
