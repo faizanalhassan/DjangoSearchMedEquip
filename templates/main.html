@@ -3,6 +3,7 @@
 Welcome {{username}}!|{{block.super}}
 {% endblock title_block %}
 {% block body_block %}
+<div id="status"></div>
 <form id="search-form" >
     <input type="text" name="search" id="search" placeholder="Enter equipment name here">
     <button type="submit">Search Sellers</button>
@@ -11,10 +12,44 @@ Welcome {{username}}!|{{block.super}}
     <button type="submit" disabled>Stop Search</button>
 </form>
 <div id="result"></div>
-
 {% endblock body_block  %}
 {% block script_block %}
 <script>
+    $(document).ready(function () {
+            var interval_connect = setInterval(function () {
+            $.get("/ajax/connected/", function (data) {
+                console.log(data);
+                var finished = true
+                for(var i = 0; i < data.length; i++){
+                    if(data[i].searching == "True"){
+                        $("#status").html("Searching...");
+                        finished = false;
+                        break;
+                    }
+                    if(!data[i].logs.includes("{{LOGS.SEARCH_FINISHED}}")){
+                        finished = false;
+                    }
+                }
+                if(finished){
+                    $.get("/ajax/file_urls/", function (links) {
+                        console.log(links);
+                        var links_tags = ""
+                        for(var i = 0; i < links.length; i++){
+                            if(links[i].url !== '') {
+                                links_tags = "<a href='" + links[i].url + "'>Download " + links[i].name + "</a><br>";
+                            }
+                        }
+                        $("#result").html(links_tags)
+                    });
+                    $("#status").html("Search Finished...");
+                }
+            }).fail(function (xhr, ajaxOptions, thrownError) {
+                $("#connect_result").html("Unexpected Error: " + thrownError);
+                clearInterval(interval_connect);
+            });
+        }, 3000);
+
+    });
     $("#search-form").submit(function (event) {
         event.preventDefault();
         $.get("/ajax/search?query=" + $("#search").val(), function (data) {
@@ -33,41 +68,20 @@ Welcome {{username}}!|{{block.super}}
     $("#stop-form").submit(function (event) {
         event.preventDefault();
         $.get("/ajax/stop-search/", function (data) {
-            $("#result").html(data);
+
             if(data.startsWith("{{ResponseStrings.SUCCEED}}"))
             {
                 $("#search-form>button").prop( "disabled", false );
                 $("#stop-form>button").prop( "disabled", true );
+                $("#result").html("Stopping...");
 
+            } else {
+                $("#result").html(data);
             }
         }).fail(function (xhr, ajaxOptions, thrownError) {
             $("#result").html("Unexpected Error: " + thrownError);
         })
 
-    });
-    $("#exec_query").click(function () {
-        $(this).html("Stop Search");
-        $.get("/ajax/search?query=" + $("#search").val(), function (data, status) {
-            console.log(data);
-            $("#result").html(data);
-            if (data === "Failed") {
-                return;
-            }
-
-            logIntId = setInterval(function () {
-                $.get("/check-logs/", function (logs) {
-                    console.log(logs.d_dotmed_logs);
-                    $("#result").html(logs.d_dotmed_logs);
-                    if (logs.d_dotmed_logs.startsWith("{{LOGS.SEARCH_FINISHED}}") || logs.d_dotmed_logs.startsWith("{{LOGS.ERROR}}")) {
-
-                        clearInterval(logIntId);
-
-                    }
-                })
-            }, 1000);
-        }).fail(function (xhr, ajaxOptions, thrownError) {
-            $("#result").html("Unexpected Error: " + thrownError);
-        });
     });
 </script>
 {% endblock script_block  %}

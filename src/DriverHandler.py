@@ -1,10 +1,13 @@
-from .selenium_mod import (Options, webdriver)
+import csv
+import os
 from datetime import datetime, timedelta
 from time import sleep
+from django.utils.text import slugify
 from . import debug_funcs as df
-import os
+from .selenium_mod import (Options, webdriver)
+from . import settings
 
-DRIVER_HANDLER_DEBUG = True
+DEBUG = True
 
 
 class SafeStopSearchException(Exception):
@@ -14,6 +17,15 @@ class SafeStopSearchException(Exception):
 class SearchRunningException(Exception):
     pass
 
+
+def create_seller_dict(name, comp, loc, phone, whatsapp):
+    return {
+        "name": name,
+        "Company Name": comp,
+        "Location": loc,
+        "Phone num": phone,
+        "WhatsApp": whatsapp
+    }
 
 class STATUS:
     RUNNING = "running"
@@ -45,9 +57,9 @@ class SellerData:
 
 
 class DriverHandler:
-    def __init__(self, name, request, resources, pause_time=2):
+    def __init__(self, user_id, name, resources, pause_time=2):
+        self.user_id = user_id
         self.name = name
-        self.request = request
         self.status = ""
         self.logs = ""
         self.set_logs(LOGS.NOTHING, "__init__")
@@ -58,6 +70,7 @@ class DriverHandler:
         self.parent = resources
         self.pause_time = pause_time
         self.run_search = False
+        self.filename = ""
 
     def set_status(self, status, called_by=""):
         self.status = status
@@ -72,25 +85,26 @@ class DriverHandler:
         if not self.run_search:
             raise SafeStopSearchException("Stop loading")
         self.set_logs(LOGS.LOADING_PAGE + url, func_name)
-        df.print_if_cond(DRIVER_HANDLER_DEBUG,
+        df.print_if_cond(DEBUG,
                          f"load_page(self={self},\n url={url},\n wait_ele_xpath={wait_ele_xpath},\n ele_count={ele_count},\n refresh_also={refresh_also})")
         sleep(self.pause_time)
-        df.print_if_cond(DRIVER_HANDLER_DEBUG, "Network check. ")
+        df.print_if_cond(DEBUG, "Network check. ")
         if self.status == STATUS.RUNNING:
             self.set_status(STATUS.LOADING, func_name)
         else:
             self.set_logs(LOGS.ERROR + "Cannot load page. Driver is not running", func_name)
+            return
         self.driver.wait_until_connected()
         self.driver.get(url)
-        df.print_if_cond(DRIVER_HANDLER_DEBUG, "Loading started. Complete")
+        df.print_if_cond(DEBUG, "Loading started. Complete")
         if refresh_also:
-            df.print_if_cond(DRIVER_HANDLER_DEBUG, "Refreshing page. ")
+            df.print_if_cond(DEBUG, "Refreshing page. ")
             self.driver.refresh()
 
         if wait_ele_xpath != "":
             for i in range(0, 5):
                 wait_ele_found = len(self.driver.find_elements_by_xpath(wait_ele_xpath))
-                df.print_if_cond(DRIVER_HANDLER_DEBUG,
+                df.print_if_cond(DEBUG,
                                  f"Wait Element found = {wait_ele_found}\tRequired Elements = {ele_count}\tLoop count = {i}")
                 if wait_ele_found >= ele_count:
                     break
@@ -107,13 +121,13 @@ class DriverHandler:
         self.driver.quit()
 
     def search(self, query):
-        df.pause_if_cond(DRIVER_HANDLER_DEBUG, "from parent")
+        df.pause_if_cond(DEBUG, "from parent")
 
     def print_log(self, called_by):
-        df.print_if_cond(DRIVER_HANDLER_DEBUG, "print_log <- ", called_by, "\n", self.name+"'s logs:", self.logs)
+        df.print_if_cond(DEBUG, "print_log <- ", called_by, "\n", self.name+"'s logs:", self.logs)
 
     def print_status(self, called_by):
-        df.print_if_cond(DRIVER_HANDLER_DEBUG, "print_status <-", called_by, "\n", self.name+"'s status: ", self.status)
+        df.print_if_cond(DEBUG, "print_status <-", called_by, "\n", self.name+"'s status: ", self.status)
 
     def create_d(self):
         func_name = "create_d"
@@ -138,7 +152,7 @@ class DriverHandler:
     def start_search(self, query):
         func_name = "run search"
         print(self)
-        while self.driver == STATUS.INITIALIZING:
+        while self.status == STATUS.INITIALIZING:
             self.set_logs(LOGS.WAITING+"Browser is not completely open yet", func_name)
             sleep(1)
         if self.run_search:
@@ -149,7 +163,21 @@ class DriverHandler:
         except SafeStopSearchException:
             pass
         self.set_logs(LOGS.SEARCH_FINISHED, func_name)
+        if len(self.sellers) > 0:
+            self.filename = self.create_csv(query)
+            df.print_if_cond(DEBUG, f"{settings.MEDIA_URL}{self.filename}")
 
+    def create_csv(self, query):
+        keys = self.sellers[0].keys()
+        filename = f"{self.user_id}_{self.name}_query_{datetime.now().strftime('%d%m%y')}"
+        filename = slugify(filename) + ".csv"
+        absfilename = os.path.join(settings.MEDIA_ROOT, filename)
+        print(absfilename)
+        with open(absfilename, 'w', newline='') as output_file:
+            dict_writer = csv.DictWriter(output_file, keys, )
+            dict_writer.writeheader()
+            dict_writer.writerows(self.sellers)
+        return filename
 
     def run_until_connected(self):
         print(self)
@@ -158,7 +186,7 @@ class DriverHandler:
             if datetime.now() > self.last_connected + timedelta(seconds=10):
                 self.delete_d()
                 # users_resources.pop(self.request, None)
-                self.parent.pop(self.request, None)
+                self.parent.pop(self.user_id, None)
                 break
             sleep(1)
 

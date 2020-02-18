@@ -3,6 +3,7 @@ from django.shortcuts import render
 from django.contrib import messages
 from .ResourceHandler import add_resource, users_resources, Thread
 from .DriverHandler import LOGS
+from . import settings
 user_id = 0
 
 
@@ -30,10 +31,15 @@ def main(request):
 
 def update_last_connected(request):
     verify_session_id(request)
-    result = f"user_id = {request.session['user_id']}\n"
+    result = []
     for driver_handler in users_resources[request.session["user_id"]]:
-        result += driver_handler.update_last_connected()
-    return HttpResponse(result.replace("\n", "<br />"))
+        driver_handler.update_last_connected()
+        result.append({
+            "searching": str(driver_handler.run_search),
+            "logs": driver_handler.logs
+        })
+    print(result)
+    return JsonResponse(result, safe=False)
 
 
 def search_query(request):
@@ -59,4 +65,17 @@ def stop_search(request):
     if stopped:
         return HttpResponse(ResponseStrings.SUCCEED)
     else:
-        return HttpResponse(ResponseStrings.FAILED + " Search is not running." )
+        return HttpResponse(ResponseStrings.FAILED + " Search is not running.")
+
+
+def file_urls(request):
+    verify_session_id(request)
+    urls = []
+    for driver_handler in users_resources[request.session["user_id"]]:
+        filname = driver_handler.filename
+        file_url = settings.MEDIA_URL + filname
+        urls.append({
+            "name": filname,
+            "url": file_url
+        })
+    return JsonResponse(urls, safe=False)

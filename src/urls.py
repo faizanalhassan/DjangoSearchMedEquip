@@ -15,13 +15,17 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from .views import main, update_last_connected, search_query, stop_search
+from .views import main, update_last_connected, search_query, stop_search, file_urls
+from . import settings
+from django.conf.urls.static import static
 
 urlpatterns = [
     path('', main),
     path('ajax/connected/', update_last_connected),
     path('ajax/search/', search_query),
     path('ajax/stop-search/', stop_search),
+    path('ajax/file_urls/', file_urls),
     path('admin/', admin.site.urls),
-
 ]
+
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

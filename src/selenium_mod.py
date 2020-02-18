@@ -25,7 +25,10 @@ def wait_until_connected(self):
 
 def get_element_text(self, xpath, e=None):
     if e is not None:
-        text = self.execute_script(f"""node = document.evaluate('{xpath}', arguments[0], null, XPathResult.FIRST_ORDERED_NODE_TYPE, null ).singleNodeValue;return node != null?node.innerText:'';""", e)
+        text = self.execute_script(
+            f"""node = document.evaluate('{xpath}',
+             arguments[0], null, XPathResult.FIRST_ORDERED_NODE_TYPE, null ).singleNodeValue;
+             return node != null?node.innerText:'';""", e)
     else:
         text = self.execute_script(
             f"""node = document.evaluate("{xpath}", document, null,

@@ -9,28 +9,11 @@
 <body>
 {% include 'messages.html' %}
 <div>
-    <span>Last connected Result:</span>
-    <span id="connect_result"></span></div>
+
 {% block body_block %}
 
-
-<p>Your csrf now: {{csrf_token}}</p>
-<button>Your id: {{id}}</button>
 {% endblock body_block %}
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
-<script>
-    $(document).ready(function () {
-        var interval_connect = setInterval(function () {
-            $.get("/ajax/connected/", function (data) {
-                $("#connect_result").html(data);
-            }).fail(function (xhr, ajaxOptions, thrownError) {
-                $("#connect_result").html("Unexpected Error: " + thrownError);
-                clearInterval(interval_connect);
-            });
-        }, 6000);
-
-    })
-</script>
 {% block script_block %}
 
 {% endblock script_block %}
