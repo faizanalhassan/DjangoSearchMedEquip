@@ -3,40 +3,53 @@
 Welcome {{username}}!|{{block.super}}
 {% endblock title_block %}
 {% block body_block %}
-<div id="status"></div>
-<form id="search-form" >
-    <input type="text" name="search" id="search" placeholder="Enter equipment name here">
-    <button type="submit">Search Sellers</button>
-</form>
-<form id="stop-form">
-    <button type="submit" disabled>Stop Search</button>
-</form>
-<div id="result"></div>
+<div class="container">
+    <div class="row">
+        <div id="status" class="col-12 text-center">Status</div>
+    </div>
+    <div class="row">
+        <div class="col-12 col-md-10">
+
+            <form class="row" id="search-form">
+                <input class="form-control col-12 col-md-8" type="text" name="search" id="search"
+                       placeholder="Enter equipment name here">
+
+                <button class="btn btn-primary col-12 col-md-2 offset-1" type="submit">Search Sellers</button>
+
+            </form>
+
+        </div>
+        <form class="row" id="stop-form">
+            <button class="btn btn-warning col-12" type="submit" disabled>Stop Search</button>
+        </form>
+    </div>
+    <div class="row" ><div class="col" id="result"></div></div>
+</div>
 {% endblock body_block  %}
 {% block script_block %}
 <script>
     $(document).ready(function () {
-            var interval_connect = setInterval(function () {
+        var interval_connect = setInterval(function () {
             $.get("/ajax/connected/", function (data) {
                 console.log(data);
                 var finished = true
-                for(var i = 0; i < data.length; i++){
-                    if(data[i].searching == "True"){
+                for (var i = 0; i < data.length; i++) {
+                    if (data[i].searching == "True") {
                         $("#status").html("Searching...");
                         finished = false;
                         break;
                     }
-                    if(!data[i].logs.includes("{{LOGS.SEARCH_FINISHED}}")){
+                    if (!data[i].logs.includes("{{LOGS.SEARCH_FINISHED}}")) {
                         finished = false;
                     }
                 }
-                if(finished){
+                if (finished) {
                     $.get("/ajax/file_urls/", function (links) {
                         console.log(links);
                         var links_tags = ""
-                        for(var i = 0; i < links.length; i++){
-                            if(links[i].url !== '') {
-                                links_tags = "<a href='" + links[i].url + "'>Download " + links[i].name + "</a><br>";
+                        for (var i = 0; i < links.length; i++) {
+                            if (links[i].url !== '') {
+                                links_tags += "<a class='badge badge-success' href='" + links[i].url + "'>Download " + links[i].name + "</a><br>";
                             }
                         }
                         $("#result").html(links_tags)
@@ -54,10 +67,9 @@ Welcome {{username}}!|{{block.super}}
         event.preventDefault();
         $.get("/ajax/search?query=" + $("#search").val(), function (data) {
             $("#result").html(data);
-            if(data.startsWith("{{ResponseStrings.SUCCEED}}"))
-            {
-                $("#search-form>button").prop( "disabled", true );
-                $("#stop-form>button").prop( "disabled", false );
+            if (data.startsWith("{{ResponseStrings.SUCCEED}}")) {
+                $("#search-form>button").prop("disabled", true);
+                $("#stop-form>button").prop("disabled", false);
 
             }
 
@@ -69,10 +81,9 @@ Welcome {{username}}!|{{block.super}}
         event.preventDefault();
         $.get("/ajax/stop-search/", function (data) {
 
-            if(data.startsWith("{{ResponseStrings.SUCCEED}}"))
-            {
-                $("#search-form>button").prop( "disabled", false );
-                $("#stop-form>button").prop( "disabled", true );
+            if (data.startsWith("{{ResponseStrings.SUCCEED}}")) {
+                $("#search-form>button").prop("disabled", false);
+                $("#stop-form>button").prop("disabled", true);
                 $("#result").html("Stopping...");
 
             } else {

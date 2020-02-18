@@ -6,7 +6,6 @@ PAUSE_TIME = 2
 NAME = "dotmed.com"
 
 
-
 class DriverHandlerDotMed(DriverHandler):
     def __init__(self, user_id, resources):
         super().__init__(user_id, NAME, resources, PAUSE_TIME)
